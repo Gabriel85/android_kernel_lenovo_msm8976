@@ -1,0 +1,30 @@
+---- EXPORT Matches (6 in 3 files) ----
+Altera.c (z:\andy_plus\linux\android\kernel\drivers\misc\altera-stapl):			 * EXPORT
+Armasm.h (z:\andy_plus\linux\android\vendor\qcom\proprietary\common\inc):        EXPORT  $node_name
+Armasm.h (z:\andy_plus\linux\android\vendor\qcom\proprietary\common\inc):        EXPORT  $node_name._32
+Armasm.h (z:\andy_plus\linux\android\vendor\qcom\proprietary\common\inc):        EXPORT $node_name
+Asm.h (z:\andy_plus\linux\android\kernel\arch\mips\include\asm): * EXPORT - export definition of symbol
+Asm.h (z:\andy_plus\linux\android\kernel\arch\mips\include\asm):#define EXPORT(symbol)					\
+---- EXPORT Matches (16 in 10 files) ----
+Altera.c (z:\andy_plus\linux\android\kernel\drivers\misc\altera-stapl):			 * EXPORT
+Armasm.h (z:\andy_plus\linux\android\vendor\qcom\proprietary\common\inc):        EXPORT  $node_name
+Armasm.h (z:\andy_plus\linux\android\vendor\qcom\proprietary\common\inc):        EXPORT  $node_name._32
+Armasm.h (z:\andy_plus\linux\android\vendor\qcom\proprietary\common\inc):        EXPORT $node_name
+Asm.h (z:\andy_plus\linux\android\kernel\arch\mips\include\asm): * EXPORT - export definition of symbol
+Asm.h (z:\andy_plus\linux\android\kernel\arch\mips\include\asm):#define EXPORT(symbol)					\
+Caps.c (z:\andy_plus\linux\android\kernel\fs\ceph): * Handle EXPORT from MDS.  Cap is being migrated _from_ this mds to a
+Caps.c (z:\andy_plus\linux\android\kernel\fs\ceph):			 * EXPORT but no IMPORT for
+Caps.c (z:\andy_plus\linux\android\kernel\fs\ceph): * Handle cap IMPORT.  If there are temp bits from an older EXPORT,
+Context.pm (z:\andy_plus\linux\android\kernel\tools\perf\scripts\perl\perf-trace-util\lib\perf\trace):our @EXPORT = qw(
+Core.pm (z:\andy_plus\linux\android\kernel\tools\perf\scripts\perl\perf-trace-util\lib\perf\trace):our @EXPORT = qw(
+St_core.c (z:\andy_plus\linux\android\kernel\drivers\misc\ti-st): * to be EXPORT-ed
+Super.c (z:\andy_plus\linux\android\kernel\fs\exofs): * EXPORT OPERATIONS
+User_syms.c (z:\andy_plus\linux\android\kernel\arch\um\os-linux): * so I *must* declare good prototypes for them and then EXPORT them.
+User_syms.c (z:\andy_plus\linux\android\kernel\arch\um\os-linux): * add an EXPORT for the glibc one.
+Util.pm (z:\andy_plus\linux\android\kernel\tools\perf\scripts\perl\perf-trace-util\lib\perf\trace):our @EXPORT = qw(
+---- wcnss_flush_delayed_work Matches (5 in 3 files) ----
+Vos_api.c (z:\andy_plus\linux\android\vendor\qcom\opensource\wlan\prima\core\voss\src):   wcnss_flush_delayed_work(dwork);
+Wcnss_wlan.c (z:\andy_plus\linux\android\kernel\drivers\net\wireless\wcnss): * wcnss_flush_delayed_work function
+Wcnss_wlan.c (z:\andy_plus\linux\android\kernel\drivers\net\wireless\wcnss):void wcnss_flush_delayed_work(struct delayed_work *dwork)
+Wcnss_wlan.c (z:\andy_plus\linux\android\kernel\drivers\net\wireless\wcnss):EXPORT_SYMBOL(wcnss_flush_delayed_work);
+Wcnss_wlan.h (z:\andy_plus\linux\android\kernel\include\linux):void wcnss_flush_delayed_work(struct delayed_work *dwork);
