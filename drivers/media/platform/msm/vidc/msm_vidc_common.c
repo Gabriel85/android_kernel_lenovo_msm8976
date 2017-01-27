@@ -52,6 +52,39 @@
 #define IS_SYS_CMD_VALID(cmd) (((cmd) >= SYS_MSG_START) && \
 		((cmd) <= SYS_MSG_END))
 
+const char *const mpeg_video_vidc_extradata[] = {
+	"Extradata none",
+	"Extradata MB Quantization",
+	"Extradata Interlace Video",
+	"Extradata VC1 Framedisp",
+	"Extradata VC1 Seqdisp",
+	"Extradata timestamp",
+	"Extradata S3D Frame Packing",
+	"Extradata Frame Rate",
+	"Extradata Panscan Window",
+	"Extradata Recovery point SEI",
+	"Extradata Multislice info",
+	"Extradata number of concealed MB",
+	"Extradata metadata filler",
+	"Extradata input crop",
+	"Extradata digital zoom",
+	"Extradata aspect ratio",
+	"Extradata mpeg2 seqdisp",
+	"Extradata stream userdata",
+	"Extradata frame QP",
+	"Extradata frame bits info",
+	"Extradata LTR",
+	"Extradata macroblock metadata",
+	"Extradata VQZip SEI",
+	"Extradata YUV Stats",
+	"Extradata ROI QP",
+	"Extradata output crop",
+	"Extradata display colour SEI",
+	"Extradata light level SEI",
+	"Extradata display VUI",
+	"Extradata vpx color space",
+};
+
 struct getprop_buf {
 	struct list_head list;
 	void *data;
@@ -81,11 +114,6 @@ static inline bool is_thumbnail_session(struct msm_vidc_inst *inst)
 	return !!(inst->flags & VIDC_THUMBNAIL);
 }
 
-static inline bool is_realtime_session(struct msm_vidc_inst *inst)
-{
-	return !!(inst->flags & VIDC_REALTIME);
-}
-
 int msm_comm_g_ctrl(struct msm_vidc_inst *inst, int id)
 {
 	int rc = 0;
@@ -97,6 +125,15 @@ int msm_comm_g_ctrl(struct msm_vidc_inst *inst, int id)
 	return rc ?: ctrl.value;
 }
 
+static inline bool is_non_realtime_session(struct msm_vidc_inst *inst)
+{
+	int rc = 0;
+	struct v4l2_control ctrl = {
+		.id = V4L2_CID_MPEG_VIDC_VIDEO_PRIORITY
+	};
+	rc = v4l2_g_ctrl(&inst->ctrl_handler, &ctrl);
+	return (!rc && ctrl.value);
+}
 enum multi_stream msm_comm_get_stream_output_mode(struct msm_vidc_inst *inst)
 {
 	if (inst->session_type == MSM_VIDC_DECODER) {
@@ -114,25 +151,21 @@ enum multi_stream msm_comm_get_stream_output_mode(struct msm_vidc_inst *inst)
 static int msm_comm_get_mbs_per_sec(struct msm_vidc_inst *inst)
 {
 	int output_port_mbs, capture_port_mbs;
-	int fps;
+	int fps, rc;
+	struct v4l2_control ctrl;
 
 	output_port_mbs = NUM_MBS_PER_FRAME(inst->prop.width[OUTPUT_PORT],
 		inst->prop.height[OUTPUT_PORT]);
 	capture_port_mbs = NUM_MBS_PER_FRAME(inst->prop.width[CAPTURE_PORT],
 		inst->prop.height[CAPTURE_PORT]);
 
-	if (inst->operating_rate) {
-		fps = (inst->operating_rate >> 16) ?
-			inst->operating_rate >> 16 : 1;
-		/*
-		 * Check if operating rate is less than fps.
-		 * If Yes, then use fps to scale the clocks
-		*/
-		fps = fps > inst->prop.fps ? fps : inst->prop.fps;
+	ctrl.id = V4L2_CID_MPEG_VIDC_VIDEO_OPERATING_RATE;
+	rc = v4l2_g_ctrl(&inst->ctrl_handler, &ctrl);
+	if (!rc && ctrl.value) {
+		fps = (ctrl.value >> 16)? ctrl.value >> 16: 1;
 		return max(output_port_mbs, capture_port_mbs) * fps;
-	} else {
+	} else
 		return max(output_port_mbs, capture_port_mbs) * inst->prop.fps;
-	}
 }
 
 int msm_comm_get_inst_load(struct msm_vidc_inst *inst,
@@ -156,7 +189,7 @@ int msm_comm_get_inst_load(struct msm_vidc_inst *inst,
 			load = inst->core->resources.max_load;
 	}
 
-	if (!is_thumbnail_session(inst) && !is_realtime_session(inst) &&
+	if (!is_thumbnail_session(inst) && is_non_realtime_session(inst) &&
 		(quirks & LOAD_CALC_IGNORE_NON_REALTIME_LOAD)) {
 		if (!inst->prop.fps) {
 			dprintk(VIDC_INFO, "%s: instance:%p prop->fps is set 0\n", __func__, inst);
@@ -165,13 +198,6 @@ int msm_comm_get_inst_load(struct msm_vidc_inst *inst,
 			load = msm_comm_get_mbs_per_sec(inst) / inst->prop.fps;
 		}
 	}
-
-	dprintk(VIDC_DBG,
-		"inst[%p]: load %d, wxh %dx%d, fps %d, operating_rate %d, flags 0x%x, quirks 0x%x\n",
-		inst, load, inst->prop.width[OUTPUT_PORT],
-		inst->prop.height[OUTPUT_PORT], inst->prop.fps,
-		inst->operating_rate >> 16, inst->flags, quirks);
-
 	return load;
 }
 
@@ -2358,7 +2384,7 @@ static int msm_vidc_load_resources(int flipped_state,
 {
 	int rc = 0;
 	struct hfi_device *hdev;
-	int num_mbs_per_sec = 0, max_load_adj = 0;
+	int num_mbs_per_sec = 0;
 	struct msm_vidc_core *core;
 	enum load_calc_quirks quirks = LOAD_CALC_IGNORE_TURBO_LOAD |
 		LOAD_CALC_IGNORE_THUMBNAIL_LOAD |
@@ -2386,15 +2412,15 @@ static int msm_vidc_load_resources(int flipped_state,
 		msm_comm_get_load(core, MSM_VIDC_DECODER, quirks) +
 		msm_comm_get_load(core, MSM_VIDC_ENCODER, quirks);
 
-	max_load_adj = core->resources.max_load + inst->capability.mbs_per_frame.max;
-
-	if (num_mbs_per_sec > max_load_adj) {
+	if (num_mbs_per_sec > core->resources.max_load) {
 		dprintk(VIDC_ERR, "HW is overloaded, needed: %d max: %d\n",
-			num_mbs_per_sec, max_load_adj);
+			num_mbs_per_sec, core->resources.max_load);
 		msm_vidc_print_running_insts(core);
+#if 0 /* Samsung skips the overloaded error return  */		
 		inst->state = MSM_VIDC_CORE_INVALID;
 		msm_comm_kill_session(inst);
 		return -EBUSY;
+#endif		
 	}
 
 	if (!is_thermal_permissible(core)) {
@@ -4088,6 +4114,18 @@ enum hal_extradata_id msm_comm_get_hal_extradata_index(
 	case V4L2_MPEG_VIDC_EXTRADATA_METADATA_MBI:
 		ret = HAL_EXTRADATA_METADATA_MBI;
 		break;
+	case V4L2_MPEG_VIDC_EXTRADATA_DISPLAY_COLOUR_SEI:
+		ret = HAL_EXTRADATA_MASTERING_DISPLAY_COLOUR_SEI;
+		break;
+	case V4L2_MPEG_VIDC_EXTRADATA_CONTENT_LIGHT_LEVEL_SEI:
+		ret = HAL_EXTRADATA_CONTENT_LIGHT_LEVEL_SEI;
+		break;
+	case V4L2_MPEG_VIDC_EXTRADATA_VUI_DISPLAY:
+		ret = HAL_EXTRADATA_VUI_DISPLAY_INFO;
+		break;
+	case V4L2_MPEG_VIDC_EXTRADATA_VPX_COLORSPACE:
+		ret = HAL_EXTRADATA_VPX_COLORSPACE;
+		break;
 	default:
 		dprintk(VIDC_WARN, "Extradata not found: %d\n", index);
 		break;
@@ -4165,24 +4203,25 @@ int msm_vidc_trigger_ssr(struct msm_vidc_core *core,
 
 static int msm_vidc_load_supported(struct msm_vidc_inst *inst)
 {
-	int num_mbs_per_sec = 0, max_load_adj = 0;
+	int num_mbs_per_sec = 0;
 	enum load_calc_quirks quirks = LOAD_CALC_IGNORE_TURBO_LOAD |
 		LOAD_CALC_IGNORE_THUMBNAIL_LOAD |
 		LOAD_CALC_IGNORE_NON_REALTIME_LOAD;
 
 	if (inst->state == MSM_VIDC_OPEN_DONE) {
-		max_load_adj = inst->core->resources.max_load + inst->capability.mbs_per_frame.max;
 		num_mbs_per_sec = msm_comm_get_load(inst->core,
 					MSM_VIDC_DECODER, quirks);
 		num_mbs_per_sec += msm_comm_get_load(inst->core,
 					MSM_VIDC_ENCODER, quirks);
-		if (num_mbs_per_sec > max_load_adj) {
+		if (num_mbs_per_sec > inst->core->resources.max_load) {
 			dprintk(VIDC_ERR,
 				"H/W is overloaded. needed: %d max: %d\n",
 				num_mbs_per_sec,
-				max_load_adj);
+				inst->core->resources.max_load);
 			msm_vidc_print_running_insts(inst->core);
+#if 0 /* Samsung skips the overloaded error return  */			
 			return -EBUSY;
+#endif			
 		}
 	}
 	return 0;
