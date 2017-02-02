@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2015, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2016, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -427,8 +427,8 @@ int msm_spm_drv_set_vdd(struct msm_spm_driver_data *dev, unsigned int vlevel)
 	do {
 		udelay(1);
 		new_level = msm_spm_drv_get_sts_curr_pmic_data(dev);
-		/* FSM is idle and data is sent to PMIC */
-		if(((new_level & 0x30000) == 0) &&
+		/* FSM is idle */
+		if (((new_level & 0x30000) == 0) &&
 				((new_level & 0xFF) == vlevel))
 			break;
 	} while (--timeout_us);

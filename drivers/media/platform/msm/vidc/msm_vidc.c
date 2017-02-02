@@ -1001,7 +1001,7 @@ int msm_vidc_dqbuf(void *instance, struct v4l2_buffer *b)
 	if (rc)
 		return rc;
 
-	for (i = 0; i < b->length; i++) {
+	for (i = b->length - 1; i >= 0 ; i--) {
 		if (!inst->map_output_buffer)
 			continue;
 		if (EXTRADATA_IDX(b->length) &&
@@ -1454,7 +1454,7 @@ int msm_vidc_close(void *instance)
 			list_del(&bi->list);
 			for (i = 0; (i < bi->num_planes)
 				&& (i < VIDEO_MAX_PLANES); i++) {
-				if (bi->handle[i])
+				if (bi->handle[i] && bi->mapped[i])
 					msm_comm_smem_free(inst, bi->handle[i]);
 			}
 			kfree(bi);
