@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-201666666, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014-2016, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -231,7 +231,8 @@
 			< 432000000   6 >,  /* NOM       */
 			< 480000000   7 >,  /* Turbo     */
 			< 550000000   8 >,  /* Super Turbo */
-			< 600000000   9 >;  /* Super Turbo */
+			< 600000000   9 >,  /* Super Turbo */
+			< 621330000   9 >;  /* Super Turbo */
 		#clock-cells = <1>;
 	};
 
@@ -452,7 +453,7 @@
 				< 1190400  4101 >,	/* SVS+  */
 				< 1382400  5712 >,	/* NOM   */
 				< 1612800  6152 >,	/* TURBO */
-				< 1804800  7104 >;
+				< 1958400  7104 >;
 		};
 
 		mincpubw-cpufreq {
@@ -480,7 +481,7 @@
 				< 1190400 403200 >,
 				< 1382400 441600 >,
 				< 1612800 556800 >,
-				< 1804800 614400 >;
+				< 1958400 614400 >;
 		};
 	};
 
@@ -522,7 +523,8 @@
 			< 1382400 >,
 			< 1612800 >,
 			< 1747200 >,
-			< 1804800 >;
+			< 1804800 >,
+			< 1958400 >;
 	};
 
 	timer {
@@ -1272,6 +1274,8 @@
 				"xo";
 		qcom,bus-clk-rate = <320000000 200000000 100000000>;
 		qcom,max-nominal-sysclk-rate = <133330000>;
+		qcom,max-svs-sysclk-rate = <100000000>;
+		qcom,pm-qos-latency = <59>;
 	};
 
 	android_usb: android_usb@086000c8 {
