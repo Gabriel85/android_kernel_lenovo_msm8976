@@ -1,4 +1,4 @@
-/* Copyright (c) 2014-2016, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2014-2015, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -2505,6 +2505,9 @@ static const struct snd_kcontrol_new msm8x16_wcd_snd_controls[] = {
 			  MSM8X16_WCD_A_CDC_IIR2_GAIN_B1_CTL,
 			0,  -84, 40, digital_gain),
 
+	SOC_SINGLE("MICBIAS CAPLESS Switch",
+			 MSM8X16_WCD_A_ANALOG_MICB_1_EN, 6, 1, 0),
+
 	SOC_ENUM("TX1 HPF cut off", cf_dec1_enum),
 	SOC_ENUM("TX2 HPF cut off", cf_dec2_enum),
 
@@ -4634,6 +4637,12 @@ static int msm8x16_wcd_codec_enable_ear_pa(struct snd_soc_dapm_widget *w,
 		snd_soc_update_bits(codec, MSM8X16_WCD_A_ANALOG_RX_EAR_CTL,
 			    0x40, 0x00);
 		usleep_range(7000, 7100);
+		/*
+		 * Reset pa select bit from ear to hph after ear pa
+		 * is disabled to reduce ear turn off pop
+		 */
+		snd_soc_update_bits(codec, MSM8X16_WCD_A_ANALOG_RX_EAR_CTL,
+			    0x80, 0x00);
 		if (get_codec_version(msm8x16_wcd) < CONGA)
 			snd_soc_update_bits(codec,
 			MSM8X16_WCD_A_ANALOG_RX_HPH_CNP_WG_TIME, 0xFF, 0x16);
@@ -5173,12 +5182,37 @@ static int msm8x16_wcd_device_up(struct snd_soc_codec *codec)
 {
 	struct msm8x16_wcd_priv *msm8x16_wcd_priv =
 		snd_soc_codec_get_drvdata(codec);
+	u32 reg;
 	int ret = 0;
 	dev_dbg(codec->dev, "%s: device up!\n", __func__);
 
 	mutex_lock(&codec->mutex);
 
 	clear_bit(BUS_DOWN, &msm8x16_wcd_priv->status_mask);
+
+	for (reg = 0; reg < ARRAY_SIZE(msm8x16_wcd_reset_reg_defaults);
+			reg++) {
+		if (msm8x16_wcd_reg_readable[reg]) {
+			if (get_codec_version(msm8x16_wcd_priv) != CAJON &&
+					cajon_digital_reg[reg])
+				continue;
+			msm8x16_wcd_write(codec,
+				reg, msm8x16_wcd_reset_reg_defaults[reg]);
+		}
+	}
+
+	if (codec->reg_def_copy) {
+		pr_debug("%s: Update ASOC cache", __func__);
+		kfree(codec->reg_cache);
+		codec->reg_cache = kmemdup(codec->reg_def_copy,
+						codec->reg_size, GFP_KERNEL);
+		if (!codec->reg_cache) {
+			pr_err("%s: Cache update failed!\n", __func__);
+			mutex_unlock(&codec->mutex);
+			return -ENOMEM;
+		}
+	}
+
 	snd_soc_card_change_online_state(codec->card, 1);
 	/* delay is required to make sure sound card state updated */
 	usleep_range(5000, 5100);

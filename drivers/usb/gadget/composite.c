@@ -33,6 +33,7 @@ static struct usb_gadget_strings **get_containers_gs(
 {
 	return (struct usb_gadget_strings **)uc->stash;
 }
+#define USB_MS_OS_DESCRIPTOR_ID			(0xEE)
 
 /**
  * next_ep_desc() - advance to the next EP descriptor

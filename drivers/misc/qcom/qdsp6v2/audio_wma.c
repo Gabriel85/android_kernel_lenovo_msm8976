@@ -18,10 +18,11 @@
 #include <linux/types.h>
 #include <linux/msm_audio_wma.h>
 #include <linux/compat.h>
+#include <linux/wakelock.h>
 #include "audio_utils_aio.h"
 
-static struct miscdevice audio_wma_misc;
-static struct ws_mgr audio_wma_ws_mgr;
+struct miscdevice audio_wma_misc;
+struct ws_mgr audio_wma_ws_mgr;
 
 #ifdef CONFIG_DEBUG_FS
 static const struct file_operations audio_wma_debug_fops = {
@@ -165,6 +166,8 @@ static long audio_compat_ioctl(struct file *file, unsigned int cmd,
 	case AUDIO_GET_WMA_CONFIG_V2_32: {
 		struct msm_audio_wma_config_v2 *wma_config;
 		struct msm_audio_wma_config_v2_32 wma_config_32;
+
+		memset(&wma_config_32, 0, sizeof(wma_config_32));
 
 		wma_config = (struct msm_audio_wma_config_v2 *)audio->codec_cfg;
 		wma_config_32.format_tag = wma_config->format_tag;
@@ -324,7 +327,7 @@ static const struct file_operations audio_wma_fops = {
 	.compat_ioctl = audio_compat_ioctl
 };
 
-static struct miscdevice audio_wma_misc = {
+struct miscdevice audio_wma_misc = {
 	.minor = MISC_DYNAMIC_MINOR,
 	.name = "msm_wma",
 	.fops = &audio_wma_fops,

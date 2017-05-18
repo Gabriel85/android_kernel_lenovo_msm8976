@@ -475,7 +475,7 @@ static int cntl_socket_process_msg_server(uint32_t cmd, uint32_t svc_id,
 	uint8_t found = 0;
 	struct diag_socket_info *info = NULL;
 
-	for (peripheral = 0; peripheral <= NUM_PERIPHERALS; peripheral++) {
+	for (peripheral = 0; peripheral < NUM_PERIPHERALS; peripheral++) {
 		info = &socket_cmd[peripheral];
 		if ((svc_id == info->svc_id) &&
 		    (ins_id == info->ins_id)) {
@@ -523,7 +523,7 @@ static int cntl_socket_process_msg_client(uint32_t cmd, uint32_t node_id,
 	struct diag_socket_info *info = NULL;
 	struct msm_ipc_port_addr remote_port = {0};
 
-	for (peripheral = 0; peripheral <= NUM_PERIPHERALS; peripheral++) {
+	for (peripheral = 0; peripheral < NUM_PERIPHERALS; peripheral++) {
 		info = &socket_data[peripheral];
 		remote_port = info->remote_addr.address.addr.port_addr;
 		if ((remote_port.node_id == node_id) &&
@@ -645,6 +645,17 @@ void diag_socket_invalidate(void *ctxt, struct diagfwd_info *fwd_ctxt)
 
 	info = (struct diag_socket_info *)ctxt;
 	info->fwd_ctxt = fwd_ctxt;
+}
+
+int diag_socket_check_state(void *ctxt)
+{
+	struct diag_socket_info *info = NULL;
+
+	if (!ctxt)
+		return 0;
+
+	info = (struct diag_socket_info *)ctxt;
+	return (int)(atomic_read(&info->diag_state));
 }
 
 static void __diag_socket_init(struct diag_socket_info *info)

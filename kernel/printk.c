@@ -2583,7 +2583,6 @@ void register_console(struct console *newcon)
 	 *	didn't select a console we take the first one
 	 *	that registers here.
 	 */
-#if 0
 	if (preferred_console < 0) {
 		if (newcon->index < 0)
 			newcon->index = 0;
@@ -2596,7 +2595,6 @@ void register_console(struct console *newcon)
 			}
 		}
 	}
-#endif
 
 	/*
 	 *	See if this console matches one we selected on

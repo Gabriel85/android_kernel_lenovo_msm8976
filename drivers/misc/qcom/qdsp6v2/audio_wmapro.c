@@ -2,7 +2,7 @@
  *
  * Copyright (C) 2008 Google, Inc.
  * Copyright (C) 2008 HTC Corporation
- * Copyright (c) 2009-2015, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2009-2016, The Linux Foundation. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -18,10 +18,11 @@
 #include <linux/types.h>
 #include <linux/msm_audio_wmapro.h>
 #include <linux/compat.h>
+#include <linux/wakelock.h>
 #include "audio_utils_aio.h"
 
-static struct miscdevice audio_wmapro_misc;
-static struct ws_mgr audio_wmapro_ws_mgr;
+struct miscdevice audio_wmapro_misc;
+struct ws_mgr     audio_wmapro_ws_mgr;
 
 #ifdef CONFIG_DEBUG_FS
 static const struct file_operations audio_wmapro_debug_fops = {
@@ -217,6 +218,8 @@ static long audio_compat_ioctl(struct file *file, unsigned int cmd,
 		struct msm_audio_wmapro_config *wmapro_config;
 		struct msm_audio_wmapro_config32 wmapro_config_32;
 
+		memset(&wmapro_config_32, 0, sizeof(wmapro_config_32));
+
 		wmapro_config =
 			(struct msm_audio_wmapro_config *)audio->codec_cfg;
 		wmapro_config_32.armdatareqthr = wmapro_config->armdatareqthr;
@@ -397,7 +400,7 @@ static const struct file_operations audio_wmapro_fops = {
 	.compat_ioctl = audio_compat_ioctl
 };
 
-static struct miscdevice audio_wmapro_misc = {
+struct miscdevice audio_wmapro_misc = {
 	.minor = MISC_DYNAMIC_MINOR,
 	.name = "msm_wmapro",
 	.fops = &audio_wmapro_fops,

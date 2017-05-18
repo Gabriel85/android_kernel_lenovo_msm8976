@@ -169,7 +169,7 @@ static ssize_t panel_debug_base_reg_write(struct file *file,
 	for (i = 0; i < len; i++) {
 		p = buf + i * 3;
 		p[2] = 0;
-		pr_debug("p[%d] = %p:%s\n", i, p, p);
+		pr_debug("p[%d] = %pK:%s\n", i, p, p);
 		cnt = sscanf(p, "%x", &tmp);
 		reg[i] = tmp;
 		pr_debug("reg[%d] = %x\n", i, (int)reg[i]);
@@ -226,20 +226,21 @@ static ssize_t panel_debug_base_reg_read(struct file *file,
 	mdss_dsi_panel_cmd_read(ctrl_pdata, panel_reg[0], panel_reg[1],
 				NULL, rx_buf, dbg->cnt);
 
-	len = scnprintf(panel_reg_buf, reg_buf_len, "0x%02zx: ", dbg->off);
+	len = snprintf(panel_reg_buf, reg_buf_len, "0x%02zx: ", dbg->off);
+	if (len < 0 || len >= sizeof(panel_reg_buf))
+		goto read_reg_fail;
 
 	for (i = 0; (len < reg_buf_len) && (i < ctrl_pdata->rx_len); i++)
 		len += scnprintf(panel_reg_buf + len, reg_buf_len - len,
 				"0x%02x ", rx_buf[i]);
 
-	if (len)
-		panel_reg_buf[len - 1] = '\n';
+	panel_reg_buf[len - 1] = '\n';
 
 	if (mdata->debug_inf.debug_enable_clock)
 		mdata->debug_inf.debug_enable_clock(0);
 
-	if ((count < reg_buf_len)
-			|| (copy_to_user(user_buf, panel_reg_buf, len)))
+	if ((count < sizeof(panel_reg_buf))
+				|| copy_to_user(user_buf, panel_reg_buf, len))
 		goto read_reg_fail;
 
 	kfree(rx_buf);
@@ -1277,7 +1278,7 @@ static inline struct mdss_mdp_misr_map *mdss_misr_get_map(u32 block_id,
 		return NULL;
 	}
 
-	pr_debug("MISR Module(%d) CTRL(0x%x) SIG(0x%x) intf_base(0x%p)\n",
+	pr_debug("MISR Module(%d) CTRL(0x%x) SIG(0x%x) intf_base(0x%pK)\n",
 			block_id, map->ctrl_reg, map->value_reg, intf_base);
 	return map;
 }
@@ -1320,7 +1321,7 @@ int mdss_misr_set(struct mdss_data_type *mdata,
 	bool use_mdp_up_misr = false;
 
 	if (!mdata || !req || !ctl) {
-		pr_err("Invalid input params: mdata = %p req = %p ctl = %p",
+		pr_err("Invalid input params: mdata = %pK req = %pK ctl = %pK",
 			mdata, req, ctl);
 		return -EINVAL;
 	}

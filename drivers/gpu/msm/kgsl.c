@@ -533,20 +533,17 @@ void kgsl_context_dump(struct kgsl_context *context)
 EXPORT_SYMBOL(kgsl_context_dump);
 
 /* Allocate a new context ID */
-int _kgsl_get_context_id(struct kgsl_device *device,
-		struct kgsl_context *context)
+int _kgsl_get_context_id(struct kgsl_device *device)
 {
 	int id;
 
 	idr_preload(GFP_KERNEL);
 	write_lock(&device->context_lock);
-	id = idr_alloc(&device->context_idr, context, 1,
+	/* Allocate the slot but don't put a pointer in it yet */
+	id = idr_alloc(&device->context_idr, NULL, 1,
 		KGSL_MEMSTORE_MAX, GFP_NOWAIT);
 	write_unlock(&device->context_lock);
 	idr_preload_end();
-
-	if (id > 0)
-		context->id = id;
 
 	return id;
 }
@@ -571,7 +568,7 @@ int kgsl_context_init(struct kgsl_device_private *dev_priv,
 	char name[64];
 	int ret = 0, id;
 
-	id = _kgsl_get_context_id(device, context);
+	id = _kgsl_get_context_id(device);
 	if (id == -ENOSPC) {
 		/*
 		 * Before declaring that there are no contexts left try
@@ -580,7 +577,7 @@ int kgsl_context_init(struct kgsl_device_private *dev_priv,
 		 */
 
 		flush_workqueue(device->events_wq);
-		id = _kgsl_get_context_id(device, context);
+		id = _kgsl_get_context_id(device);
 	}
 
 	if (id < 0) {
@@ -591,6 +588,8 @@ int kgsl_context_init(struct kgsl_device_private *dev_priv,
 
 		return id;
 	}
+
+	context->id = id;
 
 	kref_init(&context->refcount);
 	/*
@@ -1806,6 +1805,12 @@ long kgsl_ioctl_drawctxt_create(struct kgsl_device_private *dev_priv,
 		goto done;
 	}
 	trace_kgsl_context_create(dev_priv->device, context, param->flags);
+
+	/* Commit the pointer to the context in context_idr */
+	write_lock(&device->context_lock);
+	idr_replace(&device->context_idr, context, context->id);
+	write_unlock(&device->context_lock);
+
 	param->drawctxt_id = context->id;
 done:
 	return result;
@@ -2420,10 +2425,8 @@ long kgsl_ioctl_gpuobj_import(struct kgsl_device_private *dev_priv,
 	return 0;
 
 unmap:
-	if (param->type == KGSL_USER_MEM_TYPE_DMABUF) {
+	if (param->type == KGSL_USER_MEM_TYPE_DMABUF)
 		kgsl_destroy_ion(entry->priv_data);
-		entry->memdesc.sgt = NULL;
-	}
 
 	kgsl_sharedmem_free(&entry->memdesc);
 
@@ -4131,9 +4134,8 @@ int kgsl_device_platform_probe(struct kgsl_device *device)
 	disable_irq(device->pwrctrl.interrupt_num);
 
 	KGSL_DRV_INFO(device,
-		"dev_id %d regs phys 0x%08lx size 0x%08x virt %p\n",
-		device->id, device->reg_phys, device->reg_len,
-		device->reg_virt);
+		"dev_id %d regs phys 0x%08lx size 0x%08x\n",
+		device->id, device->reg_phys, device->reg_len);
 
 	rwlock_init(&device->context_lock);
 

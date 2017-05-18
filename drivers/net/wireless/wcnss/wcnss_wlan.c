@@ -469,7 +469,7 @@ static ssize_t wcnss_wlan_macaddr_show(struct device *dev,
 		penv->wlan_nv_macAddr[4], penv->wlan_nv_macAddr[5]);
 }
 
-static DEVICE_ATTR(wcnss_mac_addr, 644,
+static DEVICE_ATTR(wcnss_mac_addr, S_IRUSR | S_IWUSR,
 	wcnss_wlan_macaddr_show, wcnss_wlan_macaddr_store);
 
 static ssize_t wcnss_serial_number_show(struct device *dev,
@@ -3377,7 +3377,7 @@ static ssize_t wcnss_wlan_write(struct file *fp, const char __user
 		return -EFAULT;
 
 	if ((UINT32_MAX - count < penv->user_cal_rcvd) ||
-	     MAX_CALIBRATED_DATA_SIZE < count + penv->user_cal_rcvd) {
+		(penv->user_cal_exp_size < count + penv->user_cal_rcvd)) {
 		pr_err(DEVICE " invalid size to write %zu\n", count +
 				penv->user_cal_rcvd);
 		rc = -ENOMEM;
