@@ -42,13 +42,11 @@
 		synaptics,detect-device;
 		synaptics,bypass-packrat-id-check;
 		synaptics,power-delay-ms = <60>;
-                synaptics,reset-on-state = <0>;
-                synaptics,reset-active-ms = <10>;
-                synaptics,reset-delay-ms = <60>;
-                synaptics,ub-i2c-addr = <0x20>;
+	    synaptics,reset-on-state = <0>;
+        synaptics,reset-active-ms = <10>;
+        synaptics,reset-delay-ms = <60>;
+        synaptics,ub-i2c-addr = <0x20>;
 		synaptics,irq-flags = <0x2008>; /* IRQF_ONESHOT | IRQF_TRIGGER_LOW */
-		synaptics,swap-axes = <1>;
-                synaptics,y-flip = <1>;
 		synaptics,device1 {
 			synaptics,package-id = <3528>;
 			synaptics,bypass-sensor-coords-check;
