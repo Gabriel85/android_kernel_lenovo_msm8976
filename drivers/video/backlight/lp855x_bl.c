@@ -95,9 +95,7 @@ static void lp855x_lcd_bl_set(struct led_classdev *led_cdev,
 
 	printk("++value=%d+++++%s__________\n",value,__func__);
 	//printk(KERN_ERR"+++yxw test reg10=%x\n",lp855x_read_byte(lp,0x10));
-	if((value > 0)&&(value < 5)){
-		value = 5;
-	}
+	
 	lp855x_write_byte(lp, lp->cfg->reg_brightness, value);
 
 	return;
