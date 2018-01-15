@@ -110,6 +110,13 @@ struct qseecom_qseos_version_req {
 };
 
 /*
+ * struct qseecom_qsee_version_req - get qsee version
+ * @qsee_version - version number
+ */
+struct qseecom_qsee_version_req {
+	unsigned int qsee_version;
+};
+/*
  * struct qseecom_qseos_app_load_query - verify if app is loaded in qsee
  * @app_name[MAX_APP_NAME_SIZE]-  name of the app.
  * @app_id - app id.
@@ -251,27 +258,6 @@ struct qseecom_sg_list_buf_hdr_64bit {
 #define QSEECOM_SG_LIST_BUF_HDR_SZ_64BIT	\
 			sizeof(struct qseecom_sg_list_buf_hdr_64bit)
 
-#define MAX_CE_PIPE_PAIR_PER_UNIT 3
-#define INVALID_CE_INFO_UNIT_NUM 0xffffffff
-
-#define CE_PIPE_PAIR_USE_TYPE_FDE 0
-#define CE_PIPE_PAIR_USE_TYPE_PFE 1
-
-struct qseecom_ce_pipe_entry {
-	int valid;
-	unsigned int ce_num;
-	unsigned int ce_pipe_pair;
-};
-
-#define MAX_CE_INFO_HANDLE_SIZE 32
-struct qseecom_ce_info_req {
-	unsigned char handle[MAX_CE_INFO_HANDLE_SIZE];
-	unsigned int usage;
-	unsigned int unit_num;
-	unsigned int num_ce_pipe_entries;
-	struct qseecom_ce_pipe_entry ce_pipe_entry[MAX_CE_PIPE_PAIR_PER_UNIT];
-};
-
 #define SG_ENTRY_SZ		sizeof(struct qseecom_sg_entry)
 #define SG_ENTRY_SZ_64BIT	sizeof(struct qseecom_sg_entry_64bit)
 
@@ -373,14 +359,6 @@ extern long qseecom_ioctl(struct file *file,
 #define QSEECOM_IOCTL_SEND_MODFD_RESP_64 \
 	_IOWR(QSEECOM_IOC_MAGIC, 36, struct qseecom_send_modfd_listener_resp)
 
-#define QSEECOM_IOCTL_GET_CE_PIPE_INFO \
-	_IOWR(QSEECOM_IOC_MAGIC, 40, struct qseecom_ce_info_req)
-
-#define QSEECOM_IOCTL_FREE_CE_PIPE_INFO \
-	_IOWR(QSEECOM_IOC_MAGIC, 41, struct qseecom_ce_info_req)
-
-#define QSEECOM_IOCTL_QUERY_CE_PIPE_INFO \
-	_IOWR(QSEECOM_IOC_MAGIC, 42, struct qseecom_ce_info_req)
-
-
+#define QSEECOM_IOCTL_GET_QSEE_VERSION_REQ \
+	_IOWR(QSEECOM_IOC_MAGIC, 37, struct qseecom_qsee_version_req)
 #endif /* _UAPI_QSEECOM_H_ */
