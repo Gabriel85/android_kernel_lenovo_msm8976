@@ -1,4 +1,4 @@
-/* Copyright (c) 2013-2015, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2013-2016, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -40,7 +40,8 @@ int msm_isp_axi_create_stream(struct vfe_device *vfe_dev,
 	struct msm_vfe_axi_shared_data *axi_data,
 	struct msm_vfe_axi_stream_request_cmd *stream_cfg_cmd)
 {
-	uint32_t i = stream_cfg_cmd->stream_src;
+	int i = stream_cfg_cmd->stream_src;
+
 	if (i >= VFE_AXI_SRC_MAX) {
 		pr_err("%s:%d invalid stream_src %d\n", __func__, __LINE__,
 			stream_cfg_cmd->stream_src);
@@ -1151,7 +1152,7 @@ static int msm_isp_axi_stream_enable_cfg(
 				!dual_vfe_res->axi_data[ISP_VFE0] ||
 				!dual_vfe_res->vfe_base[ISP_VFE1] ||
 				!dual_vfe_res->axi_data[ISP_VFE1]) {
-				pr_err("%s:%d failed vfe0 %p %p vfe %p %p\n",
+				pr_err("%s:%d failed vfe0 %pK %pK vfe %pK %pK\n",
 					__func__, __LINE__,
 					dual_vfe_res->vfe_base[ISP_VFE0],
 					dual_vfe_res->axi_data[ISP_VFE0],
@@ -1502,8 +1503,7 @@ static int msm_isp_cfg_ping_pong_address(struct vfe_device *vfe_dev,
 			vfe_dev->pdev->id, bufq_handle, &buf, &buf_cnt,
 			pingpong_bit);
 		if (rc == -EFAULT) {
-			msm_isp_halt_send_error(vfe_dev,
-				ISP_EVENT_BUF_FATAL_ERROR);
+			pr_err("%s: get_buf fail\n", __func__);
 			return rc;
 		}
 		if (rc < 0 || buf == NULL) {
@@ -1717,8 +1717,6 @@ static void msm_isp_process_done_buf(struct vfe_device *vfe_dev,
 			halt_cmd.blocking_halt = 0;
 
 			msm_isp_axi_halt(vfe_dev, &halt_cmd);
-
-			memset(&error_event, 0, sizeof(error_event));
 			error_event.frame_id =
 				vfe_dev->axi_data.src_info[VFE_PIX_0].frame_id;
 			error_event.u.error_info.err_type =
@@ -1745,8 +1743,10 @@ static void msm_isp_process_done_buf(struct vfe_device *vfe_dev,
 				/* Update the framedrop count and flag only for
 					controllable_output */
 				num_bufq = buf->bufq_handle & 0xFF;
-				vfe_dev->error_info.
-					stream_framedrop_count[num_bufq]++;
+				if (num_bufq < BUF_MGR_NUM_BUF_Q) {
+					vfe_dev->error_info.
+						stream_framedrop_count[num_bufq]++;
+				}
 				vfe_dev->error_info.framedrop_flag = 1;
 				return;
 			}
@@ -2713,6 +2713,20 @@ static int msm_isp_stop_axi_stream(struct vfe_device *vfe_dev,
 		} else
 			src_mask |= (1 << intf);
 
+		if (wait_for_complete_for_this_stream &&
+			(stream_info->stream_src == RDI_INTF_0 ||
+			stream_info->stream_src == RDI_INTF_1 ||
+			stream_info->stream_src == RDI_INTF_2) &&
+			((vfe_dev->axi_data.
+				src_info[VFE_PIX_0].pix_stream_count == 0) &&
+				(vfe_dev->axi_data.
+				src_info[VFE_PIX_0].raw_stream_count == 0))) {
+			/*We have only RDI stream.. Issue Reg update forcefully */
+			ISP_DBG("%s: Issuing reg update forcefully frame id %d\n", __func__,
+				vfe_dev->axi_data.src_info[SRC_TO_INTF(stream_info->stream_src)].frame_id);
+			vfe_dev->hw_info->vfe_ops.core_ops.reg_update(
+				vfe_dev, SRC_TO_INTF(stream_info->stream_src));
+		}
 	}
 
 	if (src_mask) {
@@ -2912,7 +2926,6 @@ static int msm_isp_return_empty_buffer(struct vfe_device *vfe_dev,
 			stream_info->runtime_output_format);
 	}
 
-	memset(&error_event, 0, sizeof(error_event));
 	error_event.frame_id = frame_id;
 	error_event.u.error_info.err_type = ISP_ERROR_RETURN_EMPTY_BUFFER;
 	error_event.u.error_info.session_id = stream_info->session_id;
@@ -3354,6 +3367,11 @@ void msm_isp_process_axi_irq(struct vfe_device *vfe_dev,
 				&vfe_dev->common_data->common_dev_axi_lock,
 				axi_flags);
 
+			if (rc == -EFAULT) {
+				msm_isp_halt_send_error(vfe_dev,
+					ISP_EVENT_BUF_FATAL_ERROR);
+				return;
+			}
 			if (done_buf && !rc)
 				msm_isp_process_done_buf(vfe_dev, stream_info,
 					done_buf, ts);
